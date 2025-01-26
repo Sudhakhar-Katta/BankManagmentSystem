@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <sqlite3.h>
 
 
 typedef struct{
@@ -23,18 +24,16 @@ char* strndup(const char *s, size_t len) {
     return dup_str;  // return the duplicated string
 }
 
-void create_bank_account(char* name){
-    int len= strlen(name);
-    User_Account* account1= (User_Account*) malloc(sizeof(User_Account));
+void create_bank_account(User_Account* account1,char* name){
     
-     account1->name=strndup(name,len);
+     account1->name=strdup(name);
+     account1->balance=0.00;
 
-     free(account1->name);
-     free(account1);
+    
 }
 
 void deposit_money(User_Account* account1,double money){
-    account1->balance=money;
+    account1->balance+=money;
 }
 
 void withdraw_money(User_Account* account1,double money){
@@ -53,12 +52,13 @@ void display_account(User_Account* account1){
 
 void delete_account(User_Account* account1){
     free(account1->name);
-    free(account1);
+    account1->name=NULL;
+    account1->balance=0.0;
 }
 
 int main(){
 
-    User_Account account;
+    User_Account account= {NULL,0.0};
     int entry_question;
     char name[100];
     double money;
@@ -80,13 +80,14 @@ int main(){
     switch(entry_question){
         case 1:
             printf("What is your name: ");
-            scanf("%s",&name);
-            create_bank_account(name);
+            scanf("%99s",&name);
+            create_bank_account(&account,&name);
             break;
         case 2:
             printf("How much money would you like to deposit: ");
             scanf("%lf",&money);
             deposit_money(&account,money);
+            printf("Money deposited successfully.\n");
             break;
         case 3:
             printf("How much money would you like to withdraw: ");

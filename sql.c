@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 void setup_database() {
+
     sqlite3* db;
     int rc = sqlite3_open("my_database.db", &db);
 

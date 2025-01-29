@@ -53,7 +53,7 @@ void delete_account(User_Account* account1) {
 int main() {
     User_Account account = {NULL, 0.0};
     int choice;
-    char name[100];
+    char* name;
     double money;
 
     printf("Welcome to Katta's Bank\n");
@@ -84,7 +84,7 @@ int main() {
             case 3:
                 printf("Enter withdrawal amount: ");
                 scanf("%lf", &money);
-                withdraw_money(&account, money);
+                withdraw_money(&account,money);
                 break;
             case 4:
                 display_account(&account);

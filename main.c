@@ -2,90 +2,113 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define MAX_ACCOUNTS 100
 
 typedef struct {
-    char* name;
+    int accountNumber;
+    char name[50];
     double balance;
 } User_Account;
 
-void save_to_file(User_Account* account) {
+int accountCount = 0;  // Global counter for accounts
+
+void save_to_file(User_Account* accounts, int count) {
     FILE* file = fopen("accounts.txt", "w");
     if (file == NULL) {
         printf("Error opening file!\n");
         return;
     }
-    fprintf(file, "%s\n%.2lf", account->name, account->balance);
+    for (int i = 0; i < count; i++) {
+        fprintf(file, "%d %s %.2lf\n", accounts[i].accountNumber, accounts[i].name, accounts[i].balance);
+    }
     fclose(file);
 }
 
-void load_from_file(User_Account* account) {
+void load_from_file(User_Account* accounts) {
     FILE* file = fopen("accounts.txt", "r");
     if (file == NULL) {
-        printf("No existing account found.\n");
+        file = fopen("accounts.txt", "w");
+        if (file == NULL) {
+            printf("Error creating accounts file.\n");
+            return;
+        }
+        fclose(file);
+        printf("Created new accounts file.\n");
         return;
     }
-    char name[100];
-    double balance;
-    if (fscanf(file, "%s\n%lf", name, &balance) == 2) {
-        if (account->name != NULL) {
-            free(account->name);
-        }
-        account->name = strdup(name);
-        account->balance = balance;
-        printf("Account loaded successfully.\n");
+    while (fscanf(file, "%d %s %lf", &accounts[accountCount].accountNumber, accounts[accountCount].name, &accounts[accountCount].balance) == 3) {
+        accountCount++;
     }
     fclose(file);
 }
 
-char* strndup(const char *s, size_t len) {
-    size_t actual_len = strnlen(s, len);
-    char *dup_str = (char*) malloc(actual_len + 1);
-
-    if (dup_str != NULL) {
-        memcpy(dup_str, s, actual_len);
-        dup_str[actual_len] = '\0';
+void create_bank_account(User_Account* accounts) {
+    if (accountCount >= MAX_ACCOUNTS) {
+        printf("Cannot create more accounts. Limit reached.\n");
+        return;
     }
 
-    return dup_str;
+    accounts[accountCount].accountNumber = accountCount + 1;
+    printf("Enter name: ");
+    scanf("%49s", accounts[accountCount].name);
+    accounts[accountCount].balance = 0.0;
+    printf("Account created successfully. Account Number: %d\n", accounts[accountCount].accountNumber);
+    accountCount++;
 }
 
-void create_bank_account(User_Account* account1, char* name) {
-    account1->name = strdup(name);
-    account1->balance = 0.00;
+User_Account* find_account(User_Account* accounts, int accountNumber) {
+    for (int i = 0; i < accountCount; i++) {
+        if (accounts[i].accountNumber == accountNumber) {
+            return &accounts[i];
+        }
+    }
+    return NULL;
 }
 
-void deposit_money(User_Account* account1, double money) {
-    account1->balance += money;
+void deposit_money(User_Account* account, double money) {
+    account->balance += money;
+    printf("Deposit successful.\n");
 }
 
-void withdraw_money(User_Account* account1, double money) {
-    if (account1->balance < money) {
+void withdraw_money(User_Account* account, double money) {
+    if (account->balance < money) {
         printf("Insufficient balance.\n");
-    } else {
-        account1->balance -= money;
+    } 
+    else if (money < 0) {
+        printf("Invalid withdrawal amount.\n");
+    }else {
+        account->balance -= money;
+        printf("Withdrawal successful.\n");
     }
 }
 
-void display_account(User_Account* account1) {
-    printf("Name: %s\n", account1->name);
-    printf("Balance: %.2lf\n", account1->balance);
+void display_account(User_Account* account) {
+    printf("Account Number: %d\n", account->accountNumber);
+    printf("Name: %s\n", account->name);
+    printf("Balance: %.2lf\n", account->balance);
 }
 
-void delete_account(User_Account* account1) {
-    free(account1->name);
-    account1->name = NULL;
-    account1->balance = 0.0;
+void delete_account(User_Account* accounts, int accountNumber) {
+    for (int i = 0; i < accountCount; i++) {
+        if (accounts[i].accountNumber == accountNumber) {
+            for (int j = i; j < accountCount - 1; j++) {
+                accounts[j] = accounts[j + 1];
+            }
+            accountCount--;
+            printf("Account deleted successfully.\n");
+            return;
+        }
+    }
+    printf("Account not found.\n");
 }
 
 int main() {
-    User_Account account = {NULL, 0.0};
-    int choice;
-    char name[100];
+    User_Account accounts[MAX_ACCOUNTS];
+    int choice, accountNumber;
     double money;
 
     printf("Welcome to Katta's Bank\n");
-    
-    load_from_file(&account);
+    load_from_file(accounts);
 
     do {
         printf("\n1. Open a Bank Account\n");
@@ -99,32 +122,50 @@ int main() {
 
         switch (choice) {
             case 1:
-                printf("Enter your name: ");
-                scanf("%99s", name);
-                create_bank_account(&account, name);
-                printf("Account created successfully.\n");
-                save_to_file(&account);
+                create_bank_account(accounts);
+                save_to_file(accounts, accountCount);
                 break;
             case 2:
-                printf("Enter deposit amount: ");
-                scanf("%lf", &money);
-                deposit_money(&account, money);
-                printf("Deposit successful.\n");
-                save_to_file(&account);
+                printf("Enter account number: ");
+                scanf("%d", &accountNumber);
+                User_Account* acc = find_account(accounts, accountNumber);
+                if (acc) {
+                    printf("Enter deposit amount: ");
+                    scanf("%lf", &money);
+                    deposit_money(acc, money);
+                    save_to_file(accounts, accountCount);
+                } else {
+                    printf("Account not found.\n");
+                }
                 break;
             case 3:
-                printf("Enter withdrawal amount: ");
-                scanf("%lf", &money);
-                withdraw_money(&account, money);
-                save_to_file(&account);
+                printf("Enter account number: ");
+                scanf("%d", &accountNumber);
+                acc = find_account(accounts, accountNumber);
+                if (acc) {
+                    printf("Enter withdrawal amount: ");
+                    scanf("%lf", &money);
+                    withdraw_money(acc, money);
+                    save_to_file(accounts, accountCount);
+                } else {
+                    printf("Account not found.\n");
+                }
                 break;
             case 4:
-                display_account(&account);
+                printf("Enter account number: ");
+                scanf("%d", &accountNumber);
+                acc = find_account(accounts, accountNumber);
+                if (acc) {
+                    display_account(acc);
+                } else {
+                    printf("Account not found.\n");
+                }
                 break;
             case 5:
-                delete_account(&account);
-                printf("Account deleted successfully.\n");
-                save_to_file(&account);
+                printf("Enter account number to delete: ");
+                scanf("%d", &accountNumber);
+                delete_account(accounts, accountNumber);
+                save_to_file(accounts, accountCount);
                 break;
             case 6:
                 printf("Exiting...\n");
@@ -134,8 +175,5 @@ int main() {
         }
     } while (choice != 6);
 
-    if (account.name != NULL) {
-        free(account.name);
-    }
     return 0;
 }

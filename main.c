@@ -1,14 +1,41 @@
-#define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "sqlite3.h"
 
 
 typedef struct {
     char* name;
     double balance;
 } User_Account;
+
+void save_to_file(User_Account* account) {
+    FILE* file = fopen("accounts.txt", "w");
+    if (file == NULL) {
+        printf("Error opening file!\n");
+        return;
+    }
+    fprintf(file, "%s\n%.2lf", account->name, account->balance);
+    fclose(file);
+}
+
+void load_from_file(User_Account* account) {
+    FILE* file = fopen("accounts.txt", "r");
+    if (file == NULL) {
+        printf("No existing account found.\n");
+        return;
+    }
+    char name[100];
+    double balance;
+    if (fscanf(file, "%s\n%lf", name, &balance) == 2) {
+        if (account->name != NULL) {
+            free(account->name);
+        }
+        account->name = strdup(name);
+        account->balance = balance;
+        printf("Account loaded successfully.\n");
+    }
+    fclose(file);
+}
 
 char* strndup(const char *s, size_t len) {
     size_t actual_len = strnlen(s, len);
@@ -53,10 +80,12 @@ void delete_account(User_Account* account1) {
 int main() {
     User_Account account = {NULL, 0.0};
     int choice;
-    char* name;
+    char name[100];
     double money;
 
     printf("Welcome to Katta's Bank\n");
+    
+    load_from_file(&account);
 
     do {
         printf("\n1. Open a Bank Account\n");
@@ -74,17 +103,20 @@ int main() {
                 scanf("%99s", name);
                 create_bank_account(&account, name);
                 printf("Account created successfully.\n");
+                save_to_file(&account);
                 break;
             case 2:
                 printf("Enter deposit amount: ");
                 scanf("%lf", &money);
                 deposit_money(&account, money);
                 printf("Deposit successful.\n");
+                save_to_file(&account);
                 break;
             case 3:
                 printf("Enter withdrawal amount: ");
                 scanf("%lf", &money);
-                withdraw_money(&account,money);
+                withdraw_money(&account, money);
+                save_to_file(&account);
                 break;
             case 4:
                 display_account(&account);
@@ -92,6 +124,7 @@ int main() {
             case 5:
                 delete_account(&account);
                 printf("Account deleted successfully.\n");
+                save_to_file(&account);
                 break;
             case 6:
                 printf("Exiting...\n");
@@ -101,5 +134,8 @@ int main() {
         }
     } while (choice != 6);
 
+    if (account.name != NULL) {
+        free(account.name);
+    }
     return 0;
 }
